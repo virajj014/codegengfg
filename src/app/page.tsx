@@ -1,95 +1,94 @@
+"use client"
 import Image from "next/image";
 import styles from "./page.module.css";
+import { useState } from "react";
+
+
+const API_KEY = process.env.NEXT_PUBLIC_GEMINI_API
+
 
 export default function Home() {
+  const [code, setCode] = useState('');
+  const [isSending, setIsSending] = useState(false)
+  const [explanation, setExplanation] = useState('')
+
+  const trainingPrompt = [
+    {
+      "parts": [{
+        "text": "Now I want you to act as a code explainer, if I give you a piece of code then you have to explain me tha code in a single response , just give me the explaination don't give anything else"
+      }],
+      "role": 'user'
+    },
+    {
+      "parts": [
+        {
+          "text": "okay"
+        }
+      ],
+      "role": "model"
+    }
+  ]
+
+  const explainthiscode = async () => {
+    let url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=' + API_KEY
+
+    let messageToSend = [
+      ...trainingPrompt,
+      {
+        "parts": [{
+          "text": code
+        }
+        ],
+        "role": "user"
+      }
+    ]
+
+    setIsSending(true)
+
+    let res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        "contents": messageToSend
+      })
+    })
+
+    let resjson = await res.json()
+    setIsSending(false)
+
+    let responseMessage = resjson.candidates[0].content.parts[0].text
+    // console.log(responseMessage)
+    setExplanation(responseMessage);
+  }
   return (
-    <main className={styles.main}>
-      <div className={styles.description}>
-        <p>
-          Get started by editing&nbsp;
-          <code className={styles.code}>src/app/page.tsx</code>
-        </p>
-        <div>
-          <a
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{" "}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className={styles.vercelLogo}
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
-        </div>
+    <div className={styles.main}>
+      <div className={styles.container}>
+        <textarea className={styles.input} placeholder="Write your code here..."
+          value={code}
+          onChange={(e) => setCode(e.target.value)} />
+
+        {
+          explanation.length > 0 ?
+            <p className={styles.fixed}>
+              <span style={{ whiteSpace: 'pre-wrap' }}>{explanation}</span>
+            </p>
+            :
+            <p className={styles.notfixed}>
+              Promt is empty...
+            </p>
+        }
       </div>
-
-      <div className={styles.center}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-      </div>
-
-      <div className={styles.grid}>
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Docs <span>-&gt;</span>
-          </h2>
-          <p>Find in-depth information about Next.js features and API.</p>
-        </a>
-
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Learn <span>-&gt;</span>
-          </h2>
-          <p>Learn about Next.js in an interactive course with&nbsp;quizzes!</p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Templates <span>-&gt;</span>
-          </h2>
-          <p>Explore starter templates for Next.js.</p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Deploy <span>-&gt;</span>
-          </h2>
-          <p>
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
-    </main>
+      {
+        isSending ?
+          <button className={styles.button}
+          >Sending...</button>
+          :
+          <button className={styles.button}
+            onClick={explainthiscode}
+          >Explain</button>
+      }
+    </div>
   );
 }
